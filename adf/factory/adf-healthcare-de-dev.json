@@ -1,0 +1,15 @@
+{
+	"name": "adf-healthcare-de-dev",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "034efb1e-188a-4988-bb18-a5358e0f6b31",
+		"tenantId": "d6006bf8-8a13-406f-b57c-55c62deddd8b"
+	}
+}

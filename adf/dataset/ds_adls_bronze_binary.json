@@ -1,0 +1,20 @@
+{
+	"name": "ds_adls_bronze_binary",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_healthcare",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "patients.csv",
+				"folderPath": "patients",
+				"fileSystem": "bronze"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
