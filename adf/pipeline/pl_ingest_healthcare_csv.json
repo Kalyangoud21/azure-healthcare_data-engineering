@@ -46,6 +46,43 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "NB_Bronze_Patients_Ingestion",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "copy_landing_to_bronze",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Workspace/HC/azure-healthcare_data-engineering/databricks/bronze/01_healthcare_bronze_ingestion",
+					"baseParameters": {
+						"source_container": "bronze",
+						"source_folder": "patients",
+						"storage_account": "sthealthcarede2026",
+						"file_name": "patients_batch2.csv",
+						"target_schema": "bronze",
+						"target_table": "patients_raw",
+						"load_type": "incremental",
+						"batch_id": "BATCH_20261102_002"
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
 		"parameters": {
