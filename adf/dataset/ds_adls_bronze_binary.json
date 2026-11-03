@@ -5,13 +5,29 @@
 			"referenceName": "ls_adls_healthcare",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"p_directory": {
+				"type": "string",
+				"defaultValue": "patients"
+			},
+			"p_filename": {
+				"type": "string",
+				"defaultValue": "patients_batch2.csv"
+			}
+		},
 		"annotations": [],
 		"type": "Binary",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "patients_batch2.csv",
-				"folderPath": "patients",
+				"fileName": {
+					"value": "@dataset().p_filename",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().p_directory",
+					"type": "Expression"
+				},
 				"fileSystem": "bronze"
 			}
 		}
