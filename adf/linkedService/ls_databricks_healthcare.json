@@ -1,0 +1,13 @@
+{
+	"name": "ls_databricks_healthcare",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405613090434976.16.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/0e99786e-a4bd-466b-8e96-33e04d11b029/resourceGroups/rg-healthcare-de-dev/providers/Microsoft.Databricks/workspaces/dbw-healthcare-de-dev",
+			"existingClusterId": "1030-145806-wzzwq8bm"
+		}
+	}
+}
