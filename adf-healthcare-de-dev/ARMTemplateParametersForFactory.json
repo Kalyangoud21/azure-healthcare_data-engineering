@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-healthcare-de-dev"
+		},
+		"ls_adls_healthcare_properties_typeProperties_url": {
+			"value": "https://sthealthcarede2026.dfs.core.windows.net/"
+		},
+		"ls_databricks_healthcare_properties_typeProperties_existingClusterId": {
+			"value": "1030-145806-wzzwq8bm"
+		}
+	}
+}
