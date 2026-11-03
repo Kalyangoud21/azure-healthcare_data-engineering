@@ -58,13 +58,29 @@
 					"referenceName": "ls_adls_healthcare",
 					"type": "LinkedServiceReference"
 				},
+				"parameters": {
+					"p_directory": {
+						"type": "string",
+						"defaultValue": "patients"
+					},
+					"p_filename": {
+						"type": "string",
+						"defaultValue": "patients_batch2.csv"
+					}
+				},
 				"annotations": [],
 				"type": "Binary",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "patients_batch2.csv",
-						"folderPath": "patients",
+						"fileName": {
+							"value": "@dataset().p_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_directory",
+							"type": "Expression"
+						},
 						"fileSystem": "bronze"
 					}
 				}
@@ -125,13 +141,29 @@
 					"referenceName": "ls_adls_healthcare",
 					"type": "LinkedServiceReference"
 				},
+				"parameters": {
+					"p_directory": {
+						"type": "string",
+						"defaultValue": "patients"
+					},
+					"p_filename": {
+						"type": "string",
+						"defaultValue": "patients_batach2.csv"
+					}
+				},
 				"annotations": [],
 				"type": "Binary",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "patients_batch2.csv",
-						"folderPath": "patients",
+						"fileName": {
+							"value": "@dataset().p_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_directory",
+							"type": "Expression"
+						},
 						"fileSystem": "landing"
 					}
 				}
@@ -182,14 +214,32 @@
 							{
 								"referenceName": "ds_adls_landing_binary",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"p_directory": {
+										"value": "@pipeline().parameters.p_directory",
+										"type": "Expression"
+									},
+									"p_filename": {
+										"value": "@pipeline().parameters.p_filename",
+										"type": "Expression"
+									}
+								}
 							}
 						],
 						"outputs": [
 							{
 								"referenceName": "ds_adls_bronze_binary",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"p_directory": {
+										"value": "@pipeline().parameters.p_directory",
+										"type": "Expression"
+									},
+									"p_filename": {
+										"value": "@pipeline().parameters.p_filename",
+										"type": "Expression"
+									}
+								}
 							}
 						]
 					},
@@ -216,13 +266,25 @@
 							"notebookPath": "/Workspace/HC/azure-healthcare_data-engineering/databricks/bronze/01_healthcare_bronze_ingestion",
 							"baseParameters": {
 								"source_container": "bronze",
-								"source_folder": "patients",
+								"source_folder": {
+									"value": "@pipeline().parameters.p_directory",
+									"type": "Expression"
+								},
 								"storage_account": "sthealthcarede2026",
-								"file_name": "patients_batch2.csv",
+								"file_name": {
+									"value": "@pipeline().parameters.p_filename",
+									"type": "Expression"
+								},
 								"target_schema": "bronze",
 								"target_table": "patients_raw",
-								"load_type": "incremental",
-								"batch_id": "BATCH_20261102_002"
+								"load_type": {
+									"value": "@pipeline().parameters.p_load_type",
+									"type": "Expression"
+								},
+								"batch_id": {
+									"value": "@pipeline().parameters.p_batch_id",
+									"type": "Expression"
+								}
 							}
 						},
 						"linkedServiceName": {
@@ -241,7 +303,15 @@
 					},
 					"p_filename": {
 						"type": "string",
-						"defaultValue": "patients.csv"
+						"defaultValue": "patients_batch2.csv"
+					},
+					"p_batch_id": {
+						"type": "string",
+						"defaultValue": "BATCH_20261102_002"
+					},
+					"p_load_type": {
+						"type": "string",
+						"defaultValue": "incremental"
 					}
 				},
 				"annotations": [],
