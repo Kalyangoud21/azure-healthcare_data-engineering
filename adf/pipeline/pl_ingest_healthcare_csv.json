@@ -80,7 +80,7 @@
 					}
 				},
 				"linkedServiceName": {
-					"referenceName": "AzureDatabricks1",
+					"referenceName": "ls_databricks_healthcare",
 					"type": "LinkedServiceReference"
 				}
 			}
