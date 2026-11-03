@@ -128,7 +128,7 @@
 			},
 			"p_batch_id": {
 				"type": "string",
-				"defaultValue": "BATCH_20261102_003"
+				"defaultValue": "BATCH_20261103_003"
 			},
 			"p_load_type": {
 				"type": "string",
