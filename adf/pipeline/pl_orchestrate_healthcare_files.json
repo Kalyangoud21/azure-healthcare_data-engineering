@@ -36,18 +36,36 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@json(activity('NB_Get_File_Metadata').output.runoutput).files",
+						"value": "@activity('NB_Get_File_Metadata').output.runOutput.files",
 						"type": "Expression"
 					},
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Wait_Test_File_Iteration",
-							"type": "Wait",
+							"name": "NB_Claim_File",
+							"type": "DatabricksNotebook",
 							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
 							"userProperties": [],
 							"typeProperties": {
-								"waitTimeInSeconds": 1
+								"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/03_file_claim_orchestration",
+								"baseParameters": {
+									"file_id": {
+										"value": "@item().file_id",
+										"type": "Expression"
+									},
+									"adf_run_id": "@pipeline().RunId"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks_healthcare",
+								"type": "LinkedServiceReference"
 							}
 						}
 					]
