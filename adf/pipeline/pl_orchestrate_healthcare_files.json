@@ -21,6 +21,26 @@
 					"referenceName": "ls_databricks_healthcare",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "FE_Process_Healthcare_Files",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "NB_Get_File_Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@json(activity('NB_Get_File_Metadata').output.runoutput).files",
+						"type": "Expression"
+					},
+					"isSequential": true
+				}
 			}
 		],
 		"annotations": []
