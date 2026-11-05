@@ -1,0 +1,28 @@
+{
+	"name": "pl_orchestrate_healthcare_files",
+	"properties": {
+		"activities": [
+			{
+				"name": "NB_Get_File_Metadata",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/02_file_control_orchestration"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_healthcare",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}
