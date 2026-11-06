@@ -73,7 +73,7 @@
 							"type": "DatabricksNotebook",
 							"dependsOn": [
 								{
-									"activity": "NB_Claim_File",
+									"activity": "CP_Landing_To_Bronze",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -112,6 +112,77 @@
 								"referenceName": "ls_databricks_healthcare",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "CP_Landing_To_Bronze",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "NB_Claim_File",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_adls_landing_binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_directory": {
+											"value": "@item().source_folder",
+											"type": "Expression"
+										},
+										"p_filename": {
+											"value": "@item().file_name",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_adls_bronze_binary",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_directory": {
+											"value": "@item().source_folder",
+											"type": "Expression"
+										},
+										"p_filename": {
+											"value": "@item().file_name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
 						}
 					]
 				}
