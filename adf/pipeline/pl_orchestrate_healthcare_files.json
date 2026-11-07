@@ -88,6 +88,18 @@
 									"value": "@equals(json(activity('NB_Claim_File').output.runOutput).claim_success, true)",
 									"type": "Expression"
 								},
+								"ifFalseActivities": [
+									{
+										"name": "FAIL_File_Claim",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "File claim was unsuccessful. Copy and Bronze ingestion were blocked.",
+											"errorCode": "FILE_CLAIM_FAILED"
+										}
+									}
+								],
 								"ifTrueActivities": [
 									{
 										"name": "CP_Landing_To_Bronze",
