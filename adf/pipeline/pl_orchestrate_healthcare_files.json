@@ -51,6 +51,8 @@
 						{
 							"name": "NB_Claim_File",
 							"type": "DatabricksNotebook",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [
 								{
 									"activity": "GM_Check_Bronze_File",
@@ -76,6 +78,10 @@
 									},
 									"adf_run_id": {
 										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"bronze_file_exists": {
+										"value": "@string(activity('GM_Check_Bronze_File').output.exists)",
 										"type": "Expression"
 									}
 								}
@@ -284,8 +290,65 @@
 						{
 							"name": "IF_Bronze_File_Not_Exists",
 							"type": "IfCondition",
-							"dependsOn": [],
-							"userProperties": []
+							"dependsOn": [
+								{
+									"activity": "GM_Check_Bronze_File",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('GM_Check_Bronze_File').output.exists, false)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "FAIL_Bronze_File_Exists",
+										"type": "Fail",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"message": "Bronze destination file already exists. File claim, Copy Data, and Bronze ingestion are blocked to prevent overwriting.",
+											"errorCode": "BRONZE_FILE_ALREADY_EXISTS"
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "NB_Claim_File_Guarded",
+										"type": "DatabricksNotebook",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/03_file_claim_orchestration",
+											"baseParameters": {
+												"file_id": {
+													"value": "@item().file_id",
+													"type": "Expression"
+												},
+												"adf_run_id": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_databricks_healthcare",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
 						}
 					]
 				}
@@ -363,6 +426,10 @@
 		"concurrency": 1,
 		"variables": {
 			"bronze_file_exists": {
+				"type": "Boolean",
+				"defaultValue": false
+			},
+			"file_claim_success": {
 				"type": "Boolean",
 				"defaultValue": false
 			}
