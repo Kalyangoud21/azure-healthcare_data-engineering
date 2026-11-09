@@ -103,7 +103,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@and(\n    equals(json(activity('NB_Claim_File').output.runOutput).claim_success, true),\n    equals(activity('GM_Check_Bronze_File').output.exists, false)\n)",
+									"value": "@and(\n    equals(activity('NB_Claim_File').output.runOutput.claim_success, true),\n    equals(activity('GM_Check_Bronze_File').output.exists, false)\n)",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
