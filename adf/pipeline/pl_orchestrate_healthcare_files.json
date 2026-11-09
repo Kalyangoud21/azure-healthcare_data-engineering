@@ -130,7 +130,20 @@
 											"secureOutput": false,
 											"secureInput": false
 										},
-										"userProperties": [],
+										"userProperties": [
+											{
+												"name": "FileName",
+												"value": "@item().file_name"
+											},
+											{
+												"name": "SourceFolder",
+												"value": "@item().source_folder"
+											},
+											{
+												"name": "BatchId",
+												"value": "@item().batch_id"
+											}
+										],
 										"typeProperties": {
 											"source": {
 												"type": "BinarySource",
@@ -201,7 +214,20 @@
 											"secureOutput": false,
 											"secureInput": false
 										},
-										"userProperties": [],
+										"userProperties": [
+											{
+												"name": "FileName",
+												"value": "@item().file_name"
+											},
+											{
+												"name": "SourceFolder",
+												"value": "@item().source_folder"
+											},
+											{
+												"name": "BatchId",
+												"value": "@item().batch_id"
+											}
+										],
 										"typeProperties": {
 											"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/01_healthcare_bronze_ingestion",
 											"baseParameters": {
@@ -278,6 +304,7 @@
 								],
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
 									"enablePartitionDiscovery": false
 								},
 								"formatSettings": {
@@ -313,6 +340,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -345,7 +373,10 @@
 						"storage_account": "sthealthcarede2026",
 						"source_container": "landing",
 						"source_folder": "patients",
-						"discovered_files_json": "@string(activity('GM_Discover_Landing_Files').output.childItems)",
+						"discovered_files_json": {
+							"value": "@string(activity('GM_Discover_Landing_Files').output.childItems)",
+							"type": "Expression"
+						},
 						"adf_run_id": {
 							"value": "@pipeline().RunId",
 							"type": "Expression"
