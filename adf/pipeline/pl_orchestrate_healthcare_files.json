@@ -51,8 +51,6 @@
 						{
 							"name": "NB_Claim_File",
 							"type": "DatabricksNotebook",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [
 								{
 									"activity": "GM_Check_Bronze_File",
