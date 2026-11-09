@@ -1,6 +1,123 @@
 {
 	"name": "pl_recover_bronze_ingestion",
 	"properties": {
+		"activities": [
+			{
+				"name": "NB_Validate_Bronze_Recovery",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/05_validate_bronze_recovery",
+					"baseParameters": {
+						"file_id": {
+							"value": "@pipeline().parameters.p_file_id",
+							"type": "Expression"
+						},
+						"adf_run_id": {
+							"value": "@pipeline().parameters.p_adf_run_id",
+							"type": "Expression"
+						},
+						"batch_id": {
+							"value": "@pipeline().parameters.p_batch_id",
+							"type": "Expression"
+						},
+						"file_name": {
+							"value": "@pipeline().parameters.p_file_name",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_healthcare",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "IF_Recovery_Eligible",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "NB_Validate_Bronze_Recovery",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(\r\n    activity('NB_Validate_Bronze_Recovery').output.runOutput.recovery_eligible,\r\n    true\r\n)\r\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "FAIL_Recovery_Not_Eligible",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "Bronze recovery rejected: file is not eligible for recovery.",
+								"errorCode": "BRONZE_RECOVERY_001"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "NB_Bronze_Ingestion",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/01_healthcare_bronze_ingestion",
+								"baseParameters": {
+									"file_id": {
+										"value": "@pipeline().parameters.p_file_id",
+										"type": "Expression"
+									},
+									"adf_run_id": {
+										"value": "@pipeline().parameters.p_adf_run_id",
+										"type": "Expression"
+									},
+									"batch_id": {
+										"value": "@pipeline().parameters.p_batch_id",
+										"type": "Expression"
+									},
+									"file_name": {
+										"value": "@pipeline().parameters.p_file_name",
+										"type": "Expression"
+									},
+									"source_container": "bronze",
+									"source_folder": "patients",
+									"storage_account": "sthealthcarede2026",
+									"load_type": "INCREMENTAL",
+									"target_schema": "bronze",
+									"target_table": "patients_raw"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks_healthcare",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
 		"parameters": {
 			"p_file_id": {
 				"type": "string"
