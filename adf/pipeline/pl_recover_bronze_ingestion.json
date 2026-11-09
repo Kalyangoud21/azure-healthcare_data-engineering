@@ -1,0 +1,20 @@
+{
+	"name": "pl_recover_bronze_ingestion",
+	"properties": {
+		"parameters": {
+			"p_file_id": {
+				"type": "string"
+			},
+			"p_adf_run_id": {
+				"type": "string"
+			},
+			"p_batch_id": {
+				"type": "string"
+			},
+			"p_file_name": {
+				"type": "string"
+			}
+		},
+		"annotations": []
+	}
+}
