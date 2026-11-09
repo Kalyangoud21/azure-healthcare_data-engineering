@@ -43,7 +43,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('NB_Get_File_Metadata').output.runOutput.files",
+						"value": "@json(activity('NB_Get_File_Metadata').output.runOutput).files",
 						"type": "Expression"
 					},
 					"isSequential": true,
