@@ -11,8 +11,7 @@
 				"defaultValue": "patients"
 			},
 			"p_filename": {
-				"type": "string",
-				"defaultValue": "patients_batach2.csv"
+				"type": "string"
 			}
 		},
 		"annotations": [],
