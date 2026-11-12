@@ -151,11 +151,11 @@
 					},
 					"p_filename": {
 						"type": "string",
-						"defaultValue": "patients_batch2.csv"
+						"defaultValue": "patients_batch3.csv"
 					},
 					"p_batch_id": {
 						"type": "string",
-						"defaultValue": "BATCH_20261102_002"
+						"defaultValue": "BATCH_20261103_003"
 					},
 					"p_load_type": {
 						"type": "string",
@@ -169,6 +169,649 @@
 				"[concat(variables('factoryId'), '/datasets/ds_adls_landing_binary')]",
 				"[concat(variables('factoryId'), '/datasets/ds_adls_bronze_binary')]",
 				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_healthcare')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_orchestrate_healthcare_files')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "NB_Get_File_Metadata",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "NB_Register_landing_files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/02_file_control_orchestration"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_healthcare",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "FE_Process_Healthcare_Files",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "NB_Get_File_Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('NB_Get_File_Metadata').output.runOutput.files",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "NB_Claim_File",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "GM_Check_Bronze_File",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/03_file_claim_orchestration",
+										"baseParameters": {
+											"file_id": {
+												"value": "@item().file_id",
+												"type": "Expression"
+											},
+											"adf_run_id": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"bronze_file_exists": {
+												"value": "@string(activity('GM_Check_Bronze_File').output.exists)",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_healthcare",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "IF_Claim_Success",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "NB_Claim_File",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@and(\n    equals(activity('NB_Claim_File').output.runOutput.claim_success, true),\n    equals(activity('GM_Check_Bronze_File').output.exists, false)\n)",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "FAIL_File_Claim",
+												"type": "Fail",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"message": "File processing blocked. Either the file claim was unsuccessful or the destination file already exists in Bronze. Copy and ingestion were not executed.",
+													"errorCode": "FILE_PROCESSING_GUARD_FAILED"
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "CP_Landing_To_Bronze",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [
+													{
+														"name": "FileName",
+														"value": "@item().file_name"
+													},
+													{
+														"name": "SourceFolder",
+														"value": "@item().source_folder"
+													},
+													{
+														"name": "BatchId",
+														"value": "@item().batch_id"
+													}
+												],
+												"typeProperties": {
+													"source": {
+														"type": "BinarySource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true
+														},
+														"formatSettings": {
+															"type": "BinaryReadSettings"
+														}
+													},
+													"sink": {
+														"type": "BinarySink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														}
+													},
+													"enableStaging": false
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_adls_landing_binary",
+														"type": "DatasetReference",
+														"parameters": {
+															"p_directory": {
+																"value": "@item().source_folder",
+																"type": "Expression"
+															},
+															"p_filename": {
+																"value": "@item().file_name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_adls_bronze_binary",
+														"type": "DatasetReference",
+														"parameters": {
+															"p_directory": {
+																"value": "@item().source_folder",
+																"type": "Expression"
+															},
+															"p_filename": {
+																"value": "@item().file_name",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "NB_Bronze_Ingestion",
+												"type": "DatabricksNotebook",
+												"dependsOn": [
+													{
+														"activity": "CP_Landing_To_Bronze",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [
+													{
+														"name": "FileName",
+														"value": "@item().file_name"
+													},
+													{
+														"name": "SourceFolder",
+														"value": "@item().source_folder"
+													},
+													{
+														"name": "BatchId",
+														"value": "@item().batch_id"
+													}
+												],
+												"typeProperties": {
+													"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/01_healthcare_bronze_ingestion",
+													"baseParameters": {
+														"file_id": {
+															"value": "@item().file_id",
+															"type": "Expression"
+														},
+														"adf_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"batch_id": {
+															"value": "@item().batch_id",
+															"type": "Expression"
+														},
+														"source_container": {
+															"value": "@item().source_container",
+															"type": "Expression"
+														},
+														"source_folder": {
+															"value": "@item().source_folder",
+															"type": "Expression"
+														},
+														"file_name": {
+															"value": "@item().file_name",
+															"type": "Expression"
+														},
+														"storage_account": "sthealthcarede2026",
+														"load_type": {
+															"value": "@item().load_type",
+															"type": "Expression"
+														},
+														"target_schema": "bronze",
+														"target_table": "patients_raw"
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_databricks_healthcare",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "NB_Silver_LoadDimPatients",
+												"type": "DatabricksNotebook",
+												"dependsOn": [
+													{
+														"activity": "NB_Bronze_Ingestion",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/silver/01_silver_load_dimpatients",
+													"baseParameters": {
+														"file_id": {
+															"value": "@item().file_id",
+															"type": "Expression"
+														},
+														"adf_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_databricks_healthcare",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "GM_Check_Bronze_File",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_adls_bronze_binary",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_directory": {
+													"value": "@item().source_folder",
+													"type": "Expression"
+												},
+												"p_filename": {
+													"value": "@item().file_name",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"exists"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "BinaryReadSettings"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GM_Discover_Landing_Files",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_adls_landing_folder",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "BinaryReadSettings"
+							}
+						}
+					},
+					{
+						"name": "NB_Register_landing_files",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "GM_Discover_Landing_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/04_register_landing_files",
+							"baseParameters": {
+								"storage_account": "sthealthcarede2026",
+								"source_container": "landing",
+								"source_folder": "patients",
+								"discovered_files_json": {
+									"value": "@string(activity('GM_Discover_Landing_Files').output.childItems)",
+									"type": "Expression"
+								},
+								"adf_run_id": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_healthcare",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"bronze_file_exists": {
+						"type": "Boolean",
+						"defaultValue": false
+					},
+					"file_claim_success": {
+						"type": "Boolean",
+						"defaultValue": false
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_healthcare')]",
+				"[concat(variables('factoryId'), '/datasets/ds_adls_landing_folder')]",
+				"[concat(variables('factoryId'), '/datasets/ds_adls_bronze_binary')]",
+				"[concat(variables('factoryId'), '/datasets/ds_adls_landing_binary')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_recover_bronze_ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "NB_Validate_Bronze_Recovery",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/05_validate_bronze_recovery",
+							"baseParameters": {
+								"file_id": {
+									"value": "@pipeline().parameters.p_file_id",
+									"type": "Expression"
+								},
+								"adf_run_id": {
+									"value": "@pipeline().parameters.p_adf_run_id",
+									"type": "Expression"
+								},
+								"batch_id": {
+									"value": "@pipeline().parameters.p_batch_id",
+									"type": "Expression"
+								},
+								"file_name": {
+									"value": "@pipeline().parameters.p_file_name",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_healthcare",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "IF_Recovery_Eligible",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "NB_Validate_Bronze_Recovery",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(\r\n    activity('NB_Validate_Bronze_Recovery').output.runOutput.recovery_eligible,\r\n    true\r\n)\r\n",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "FAIL_Recovery_Not_Eligible",
+									"type": "Fail",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"message": "Bronze recovery rejected: file is not eligible for recovery.",
+										"errorCode": "BRONZE_RECOVERY_001"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "NB_Bronze_Ingestion",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/bronze/01_healthcare_bronze_ingestion",
+										"baseParameters": {
+											"file_id": {
+												"value": "@pipeline().parameters.p_file_id",
+												"type": "Expression"
+											},
+											"adf_run_id": {
+												"value": "@pipeline().parameters.p_adf_run_id",
+												"type": "Expression"
+											},
+											"batch_id": {
+												"value": "@pipeline().parameters.p_batch_id",
+												"type": "Expression"
+											},
+											"file_name": {
+												"value": "@pipeline().parameters.p_file_name",
+												"type": "Expression"
+											},
+											"source_container": "bronze",
+											"source_folder": "patients",
+											"storage_account": "sthealthcarede2026",
+											"load_type": "INCREMENTAL",
+											"target_schema": "bronze",
+											"target_table": "patients_raw"
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_databricks_healthcare",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_file_id": {
+						"type": "string"
+					},
+					"p_adf_run_id": {
+						"type": "string"
+					},
+					"p_batch_id": {
+						"type": "string"
+					},
+					"p_file_name": {
+						"type": "string"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_healthcare')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_test_landing_discovery')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GM_Test_Landing_Files",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_adls_landing_folder",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "BinaryReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_adls_landing_folder')]"
 			]
 		},
 		{
@@ -269,8 +912,7 @@
 						"defaultValue": "patients"
 					},
 					"p_filename": {
-						"type": "string",
-						"defaultValue": "patients_batach2.csv"
+						"type": "string"
 					}
 				},
 				"annotations": [],
@@ -286,6 +928,29 @@
 							"value": "@dataset().p_directory",
 							"type": "Expression"
 						},
+						"fileSystem": "landing"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_healthcare')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_adls_landing_folder')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_healthcare",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "patients",
 						"fileSystem": "landing"
 					}
 				}
