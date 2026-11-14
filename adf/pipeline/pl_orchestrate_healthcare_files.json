@@ -307,8 +307,8 @@
 										}
 									},
 									{
-										"name": "NB_Gold_DimPatientCurrent",
-										"type": "DatabricksNotebook",
+										"name": "EP_Process_Gold",
+										"type": "ExecutePipeline",
 										"dependsOn": [
 											{
 												"activity": "NB_Silver_LoadDimPatients",
@@ -318,29 +318,25 @@
 											}
 										],
 										"policy": {
-											"timeout": "0.12:00:00",
-											"retry": 0,
-											"retryIntervalInSeconds": 30,
-											"secureOutput": false,
 											"secureInput": false
 										},
 										"userProperties": [],
 										"typeProperties": {
-											"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/gold/01_gold_dim_patient_current",
-											"baseParameters": {
-												"file_id": {
+											"pipeline": {
+												"referenceName": "pl_process_gold",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"p_file_id": {
 													"value": "@item().p_file_id",
 													"type": "Expression"
 												},
-												"adf_run_id": {
+												"p_adf_run_id": {
 													"value": "@pipeline().RunId",
 													"type": "Expression"
 												}
 											}
-										},
-										"linkedServiceName": {
-											"referenceName": "ls_databricks_healthcare",
-											"type": "LinkedServiceReference"
 										}
 									}
 								]
