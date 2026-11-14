@@ -22,12 +22,48 @@
 							"value": "@pipeline().parameters.p_file_id",
 							"type": "Expression"
 						},
-						"recovery_run_id": "@pipeline().parameters.p_recovery_run_id"
+						"recovery_run_id": {
+							"value": "@pipeline().parameters.p_recovery_run_id",
+							"type": "Expression"
+						}
 					}
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_healthcare",
 					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "EP_Process_Gold_Recovery",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "NB_Recovery_Coordinator",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_process_gold",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_file_id": {
+							"value": "@pipeline().parameters.p_file_id",
+							"type": "Expression"
+						},
+						"p_adf_run_id": {
+							"value": "@pipeline().parameters.p_recovery_run_id",
+							"type": "Expression"
+						}
+					}
 				}
 			}
 		],
