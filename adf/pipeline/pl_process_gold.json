@@ -1,0 +1,7 @@
+{
+	"name": "pl_process_gold",
+	"properties": {
+		"concurrency": 1,
+		"annotations": []
+	}
+}
