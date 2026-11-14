@@ -480,6 +480,39 @@
 													"referenceName": "ls_databricks_healthcare",
 													"type": "LinkedServiceReference"
 												}
+											},
+											{
+												"name": "EP_Process_Gold",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "NB_Silver_LoadDimPatients",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_process_gold",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"p_file_id": {
+															"value": "@item().p_file_id",
+															"type": "Expression"
+														},
+														"p_adf_run_id": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														}
+													}
+												}
 											}
 										]
 									}
@@ -619,7 +652,8 @@
 				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_healthcare')]",
 				"[concat(variables('factoryId'), '/datasets/ds_adls_landing_folder')]",
 				"[concat(variables('factoryId'), '/datasets/ds_adls_bronze_binary')]",
-				"[concat(variables('factoryId'), '/datasets/ds_adls_landing_binary')]"
+				"[concat(variables('factoryId'), '/datasets/ds_adls_landing_binary')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_process_gold')]"
 			]
 		},
 		{
@@ -1043,6 +1077,61 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_process_gold')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "NB_Gold_DimPatientCurrent",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/gold/01_gold_dim_patient_current",
+							"baseParameters": {
+								"file_id": {
+									"value": "@pipeline().parameters.p_file_id",
+									"type": "Expression"
+								},
+								"adf_run_id": {
+									"value": "@pipeline().parameters.p_adf_run_id",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_healthcare",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_file_id": {
+						"type": "string"
+					},
+					"p_adf_run_id": {
+						"type": "string"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_healthcare')]"
+			]
 		}
 	]
 }
