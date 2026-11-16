@@ -342,8 +342,6 @@
 									{
 										"name": "CP_Archeive_Processed_File",
 										"type": "Copy",
-										"state": "Inactive",
-										"onInactiveMarkAs": "Succeeded",
 										"dependsOn": [
 											{
 												"activity": "GM_Check_Archive_Exists",
