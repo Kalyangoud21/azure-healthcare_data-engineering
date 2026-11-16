@@ -50,6 +50,61 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/pl_process_gold')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "NB_Gold_DimPatientCurrent",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/gold/01_gold_dim_patient_current",
+							"baseParameters": {
+								"file_id": {
+									"value": "@pipeline().parameters.p_file_id",
+									"type": "Expression"
+								},
+								"adf_run_id": {
+									"value": "@pipeline().parameters.p_adf_run_id",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_healthcare",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"concurrency": 1,
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_file_id": {
+						"type": "string"
+					},
+					"p_adf_run_id": {
+						"type": "string"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_healthcare')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_recover_bronze_ingestion')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -337,61 +392,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/ls_adls_healthcare')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_process_gold')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "NB_Gold_DimPatientCurrent",
-						"type": "DatabricksNotebook",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"notebookPath": "/HC/azure-healthcare_data-engineering/databricks/gold/01_gold_dim_patient_current",
-							"baseParameters": {
-								"file_id": {
-									"value": "@pipeline().parameters.p_file_id",
-									"type": "Expression"
-								},
-								"adf_run_id": {
-									"value": "@pipeline().parameters.p_adf_run_id",
-									"type": "Expression"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "ls_databricks_healthcare",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"concurrency": 1,
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"p_file_id": {
-						"type": "string"
-					},
-					"p_adf_run_id": {
-						"type": "string"
-					}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_healthcare')]"
 			]
 		},
 		{
@@ -885,6 +885,128 @@
 															"value": "@pipeline().RunId",
 															"type": "Expression"
 														}
+													}
+												}
+											},
+											{
+												"name": "CP_Archeive_Processed_File",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "GM_Check_Archive_Exists",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "BinarySource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": false,
+															"deleteFilesAfterCompletion": false
+														},
+														"formatSettings": {
+															"type": "BinaryReadSettings"
+														}
+													},
+													"sink": {
+														"type": "BinarySink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														}
+													},
+													"enableStaging": false,
+													"skipErrorFile": {
+														"dataInconsistency": false
+													},
+													"validateDataConsistency": true
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_adls_landing_binary",
+														"type": "DatasetReference",
+														"parameters": {
+															"p_directory": {
+																"value": "@item().source_folder",
+																"type": "Expression"
+															},
+															"p_filename": {
+																"value": "@item().file_name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_adls_landing_binary",
+														"type": "DatasetReference",
+														"parameters": {
+															"p_directory": {
+																"value": "archive/patients",
+																"type": "Expression"
+															},
+															"p_filename": {
+																"value": "@item().file_name",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "GM_Check_Archive_Exists",
+												"type": "GetMetadata",
+												"dependsOn": [
+													{
+														"activity": "EP_Process_Gold",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"dataset": {
+														"referenceName": "ds_adls_landing_binary",
+														"type": "DatasetReference",
+														"parameters": {
+															"p_directory": {
+																"value": "archive/patients",
+																"type": "Expression"
+															},
+															"p_filename": {
+																"value": "@item().file_name",
+																"type": "Expression"
+															}
+														}
+													},
+													"fieldList": [
+														"exists"
+													],
+													"storeSettings": {
+														"type": "AzureBlobFSReadSettings",
+														"enablePartitionDiscovery": false
+													},
+													"formatSettings": {
+														"type": "BinaryReadSettings"
 													}
 												}
 											}
