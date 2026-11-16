@@ -5,7 +5,7 @@
 		"annotations": [],
 		"type": "AzureBlobFS",
 		"typeProperties": {
-			"url": "https://sthealthcarede2026.dfs.core.windows.net/"
+			"url": "https://<STORAGE_ACCOUNT_NAME>.dfs.core.windows.net/"
 		}
 	}
 }
