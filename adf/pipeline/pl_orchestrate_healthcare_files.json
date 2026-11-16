@@ -329,7 +329,7 @@
 											"waitOnCompletion": true,
 											"parameters": {
 												"p_file_id": {
-													"value": "@item().p_file_id",
+													"value": "@item().file_id",
 													"type": "Expression"
 												},
 												"p_adf_run_id": {
