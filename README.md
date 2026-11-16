@@ -1,3 +1,4 @@
+![Azure Healthcare Data Engineering Architecture](docs/architecture/azure-healthcare-architecture.png)
 # Azure Healthcare Data Engineering | End-to-End Medallion Architecture
 
 An end-to-end Azure Data Engineering portfolio project demonstrating automated ingestion, transformation, orchestration, incremental processing, data quality, auditing, and recovery using Azure Data Factory, Azure Databricks, PySpark, Delta Lake, and ADLS Gen2.
